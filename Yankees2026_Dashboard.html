@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yankees 2026 Ticket Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;padding:20px}
+  .header{text-align:center;padding:24px;background:linear-gradient(135deg,#003087,#1C2841);border-radius:12px;margin-bottom:24px;border-bottom:4px solid #C4CED4}
+  .header h1{color:white;font-size:28px;margin-bottom:4px}
+  .header p{color:rgba(255,255,255,0.85);font-size:14px}
+  .summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+  .card{background:white;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+  .card .label{font-size:11px;text-transform:uppercase;color:#666;letter-spacing:0.5px;margin-bottom:4px}
+  .card .value{font-size:24px;font-weight:700;color:#003087}
+  .card .value.pos{color:#2e7d32} .card .value.neg{color:#c62828}
+  .table-wrap{background:white;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#003087;color:white;padding:8px 6px;text-align:center;white-space:nowrap;position:sticky;top:0}
+  td{padding:6px;text-align:center;border-bottom:1px solid #e8e8e8}
+  tr:hover td{background:#f5f8fc !important}
+  tr.sold td{background:#e8f5e9} tr.act td{background:#fff8e1} tr.inact td{background:#ffebee} tr.nl td{background:#fafafa}
+  .badge{font-weight:600;padding:2px 6px;border-radius:3px;font-size:10px;white-space:nowrap}
+  .badge.s{background:#c8e6c9;color:#2e7d32} .badge.a{background:#fff9c4;color:#e65100}
+  .badge.i{background:#ffcdd2;color:#c62828} .badge.n{background:#e0e0e0;color:#616161}
+  .btn{margin-top:16px;padding:10px 18px;background:#003087;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px}
+  .btn:hover{background:#001f5c}
+  .totals td{font-weight:700;background:#e8f0fe !important;border-top:2px solid #003087}
+  .legend{margin-top:14px;display:flex;gap:14px;font-size:11px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:4px}
+  .sw{width:12px;height:12px;border-radius:2px}
+  .filter-bar{margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .filter-bar select{padding:6px 10px;border:1px solid #ccc;border-radius:4px;font-size:12px}
+  .filter-bar label{font-size:12px;font-weight:600;color:#555}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Yankees 2026 Ticket Tracker</h1>
+  <p>Section 114A, Row 9 | Season Ticket Sales Dashboard | $262.50/seat | Updated Apr 1, 2026</p>
+</div>
+<div class="summary-cards" id="cards"></div>
+<div class="filter-bar">
+  <label>Filter:</label>
+  <select id="statusFilter" onchange="render()">
+    <option value="all">All Statuses</option>
+    <option value="SOLD">Sold</option>
+    <option value="ACTIVE">Active</option>
+    <option value="NOT LISTED">Not Listed</option>
+  </select>
+  <select id="monthFilter" onchange="render()">
+    <option value="all">All Months</option>
+    <option value="Apr">April</option><option value="May">May</option>
+    <option value="Jun">June</option><option value="Jul">July</option><option value="Aug">August</option>
+    <option value="Sep">September</option>
+  </select>
+</div>
+<div class="table-wrap" id="tbl"></div>
+<div><button class="btn" onclick="exportCSV()">Export CSV</button></div>
+<div class="legend">
+  <div class="legend-item"><div class="sw" style="background:#c8e6c9"></div>Sold</div>
+  <div class="legend-item"><div class="sw" style="background:#fff9c4"></div>Active</div>
+  <div class="legend-item"><div class="sw" style="background:#eee"></div>Not Listed</div>
+</div>
+<script>
+const C=262.50;
+const games=[
+  {id:1,sgId:'17691523',d:'Tue, Apr 7',t:'7:05 PM',o:'Athletics',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:2,sgId:'17691527',d:'Tue, Apr 14',t:'7:05 PM',o:'Angels',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:3,sgId:'17691531',d:'Sat, Apr 18',t:'1:35 PM',o:'Royals',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:4,sgId:'17691535',d:'Sun, May 3',t:'1:35 PM',o:'Orioles',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:5,sgId:'17691539',d:'Thu, May 7',t:'12:35 PM',o:'Rangers',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:6,sgId:'17691543',d:'Thu, May 21',t:'7:05 PM',o:'Blue Jays',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:7,sgId:'17691547',d:'Tue, Jun 2',t:'7:05 PM',o:'Guardians',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:8,sgId:'N/A',d:'Tue, Jun 2',t:'7:05 PM',o:'Red Sox',sec:'Seats 1-4',s:4,lp:262.50,sp:262.50,ss:4,po:1050.00,st:'SOLD',n:'Sold to MB at cost; No SeatGeek fee'},
+  {id:9,sgId:'17691555',d:'Thu, Jun 18',t:'7:05 PM',o:'White Sox',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:10,sgId:'17691559',d:'Mon, Jun 29',t:'7:05 PM',o:'Tigers',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:11,sgId:'17691563',d:'Sat, Jul 4',t:'1:35 PM',o:'Twins',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:12,sgId:'17691567',d:'Sun, Jul 19',t:'7:20 PM',o:'Dodgers',sec:'Seats 1-4',s:4,lp:262.50,sp:262.50,ss:4,po:1050.00,st:'SOLD',n:'Sold to MB at cost; No SeatGeek fee'},
+  {id:13,sgId:'17691571',d:'Mon, Aug 3',t:'7:05 PM',o:'Cardinals',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:14,sgId:'17691574',d:'Sat, Aug 8',t:'1:35 PM',o:'Braves',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:15,sgId:'17691579',d:'Thu, Aug 13',t:'1:35 PM',o:'Mariners',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:16,sgId:'17691583',d:'Tue, Aug 25',t:'7:05 PM',o:'Astros',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:17,sgId:'17691587',d:'Sat, Aug 29',t:'7:15 PM',o:'Red Sox',sec:'Seats 1-4',s:4,lp:257.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'Smart Balanced; Seats 1-2 ~$257/tk, Seats 3-4 ~$247/tk'},
+  {id:18,sgId:'17691591',d:'Thu, Sep 10',t:'7:05 PM',o:'Rockies',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:19,sgId:'17691595',d:'Tue, Sep 22',t:'7:05 PM',o:'Rays',sec:'Seats 1-4',s:4,lp:225.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'2 pairs @ $225/tk; If sold: $810'},
+  {id:20,sgId:'17691599',d:'Sat, Sep 26',t:'7:05 PM',o:'Orioles',sec:'Seats 1-4',s:4,lp:276.00,sp:null,ss:0,po:null,st:'ACTIVE',n:'Smart Balanced; Seats 1-2 ~$276/tk, Seats 3-4 ~$267/tk'},
+];
+const $=id=>document.getElementById(id);
+const fmt=n=>n!=null&&!isNaN(n)?'$'+n.toFixed(2).replace(/\d(?=(\d{3})+\.)/g,'$&,'):'--';
+function totals(g){let tc=0,tp=0,tss=0,ts=0;g.forEach(x=>{ts+=x.s;tc+=x.s*C;if(x.po)tp+=x.po;if(x.ss)tss+=x.ss});return{tc,tp,tss,ts,net:tp-tc}}
+function badge(s){const c=s==='SOLD'?'s':s==='ACTIVE'?'a':s==='INACTIVE'?'i':'n';return '<span class="badge '+c+'">'+s+'</span>'}
+function rc(s){return s==='SOLD'?'sold':s==='ACTIVE'?'act':s==='INACTIVE'?'inact':'nl'}
+function filtered(g){
+  const sf=$('statusFilter').value,mf=$('monthFilter').value;
+  return g.filter(x=>(sf==='all'||x.st===sf)&&(mf==='all'||x.d.includes(mf)));
+}
+function tbl(g){
+  const fg=filtered(g);
+  let h='<table><tr><th>#</th><th>Date</th><th>Time</th><th>Opponent</th><th>Seats</th><th>Cost/Seat</th><th>Total Cost</th><th>List $</th><th>Payout/Tk</th><th>Sold</th><th>Total Payout</th><th>Net P/L</th><th>MB</th><th>Status</th><th>Notes</th></tr>';
+  let tt=totals(fg);
+  fg.forEach(x=>{
+    const tc=x.s*C,net=x.po?x.po-tc:null;
+    const mb=net!=null?net/2:null;
+    h+='<tr class="'+rc(x.st)+'"><td>'+x.id+'</td><td>'+x.d+'</td><td>'+x.t+'</td><td>'+x.o+'</td><td>'+x.s+'</td><td>'+fmt(C)+'</td><td>'+fmt(tc)+'</td><td>'+fmt(x.lp)+'</td><td>'+fmt(x.sp)+'</td><td>'+(x.ss||0)+'</td><td>'+fmt(x.po)+'</td><td style="color:'+(net!=null?(net>=0?'#2e7d32':'#c62828'):'inherit')+';font-weight:600">'+(net!=null?fmt(net):'--')+'</td><td style="color:'+(mb!=null?(mb>=0?'#2e7d32':'#c62828'):'inherit')+';font-weight:600">'+(mb!=null?fmt(mb):'--')+'</td><td>'+badge(x.st)+'</td><td style="text-align:left;font-size:11px">'+x.n+'</td></tr>';
+  });
+  h+='<tr class="totals"><td colspan="4">TOTALS ('+fg.length+' games)</td><td>'+tt.ts+'</td><td></td><td>'+fmt(tt.tc)+'</td><td></td><td></td><td>'+tt.tss+'</td><td>'+fmt(tt.tp)+'</td><td style="color:'+(tt.net>=0?'#2e7d32':'#c62828')+'">'+fmt(tt.net)+'</td><td style="color:'+(tt.net/2>=0?'#2e7d32':'#c62828')+';font-weight:700">'+fmt(tt.net/2)+'</td><td></td><td></td></tr></table>';
+  return h;
+}
+function cards(){
+  const t=totals(games);
+  const sc=games.filter(g=>g.st==='SOLD').length;
+  const ac=games.filter(g=>g.st==='ACTIVE').length;
+  $('cards').innerHTML=
+    '<div class="card"><div class="label">Total Games</div><div class="value">'+games.length+'</div></div>'+
+    '<div class="card"><div class="label">Sold</div><div class="value pos">'+sc+'</div></div>'+
+    '<div class="card"><div class="label">Active</div><div class="value">'+ac+'</div></div>'+
+    '<div class="card"><div class="label">Cost Basis</div><div class="value">'+fmt(t.tc)+'</div></div>'+
+    '<div class="card"><div class="label">Payouts</div><div class="value">'+fmt(t.tp)+'</div></div>'+
+    '<div class="card"><div class="label">Net P/L</div><div class="value '+(t.net>=0?'pos':'neg')+'">'+fmt(t.net)+'</div></div>'+
+    '<div class="card"><div class="label">Seats Sold</div><div class="value">'+t.tss+' / '+t.ts+'</div></div>';
+}
+function render(){
+  $('tbl').innerHTML=tbl(games);
+  cards();
+}
+function exportCSV(){
+  let csv='ID,SeatGeek ID,Date,Time,Opponent,Seats,Cost/Seat,Total Cost,List $,Payout/Tk,Seats Sold,Total Payout,Net,Status,Notes\n';
+  games.forEach(g=>{const tc=g.s*C;const net=g.po?g.po-tc:'';
+    csv+=[g.id,g.sgId,g.d,g.t,'"'+g.o+'"',g.s,C,tc,g.lp||'',g.sp||'',g.ss||0,g.po||'',net,g.st,'"'+g.n+'"'].join(',')+'\n';});
+  const b=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='yankees2026_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+render();
+</script>
+</body>
+</html>
